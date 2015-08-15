@@ -62,7 +62,7 @@ fn run(args: &Args) -> Result<(), Error> {
     checkout("master");
     pull("origin", "master");
     checkout(&current_branch);
-    // rebase("master");
+    rebase("master");
 
     return Ok(())
 }
@@ -101,6 +101,27 @@ fn pull(target_remote: &str, target_branch: &str) {
     let status_code = output.status.code();
 
     println!("Pulling {} {} ...", target_remote, target_branch);
+
+    match status_code {
+        Some(0) => println!("{}", String::from_utf8_lossy(&output.stdout)),
+        Some(_) => {
+             println!("{}", String::from_utf8_lossy(&output.stderr));
+             exit(status_code.unwrap());
+        }
+        None => println!("Something wrong happened"),
+    }
+}
+
+fn rebase(target_branch: &str) {
+    let output = Command::new("git")
+                         .arg("rebase")
+                         .arg(target_branch)
+                         .output()
+                         .unwrap_or_else(|e| {
+                            panic!("failed to execute process: {}", e) });
+    let status_code = output.status.code();
+
+    println!("Rebasing {} ...", target_branch);
 
     match status_code {
         Some(0) => println!("{}", String::from_utf8_lossy(&output.stdout)),
