@@ -11,7 +11,6 @@ use git2::{Repository, Error, StatusOptions, ErrorCode, SubmoduleIgnore};
 #[derive(RustcDecodable)]
 struct Args {
     arg_spec: Vec<String>,
-    flag_branch: bool,
     flag_git_dir: Option<String>,
 }
 
@@ -31,10 +30,9 @@ fn run(args: &Args) -> Result<(), Error> {
 
     loop {
         let statuses = try!(repo.statuses(Some(&mut opts)));
+        let current_branch = try!(branch(&repo));
 
-        if args.flag_branch {
-            try!(show_branch(&repo));
-        }
+        println!("Current branch {:?}", current_branch);
 
         print_short(&repo, statuses);
 
@@ -42,18 +40,18 @@ fn run(args: &Args) -> Result<(), Error> {
     }
 }
 
-fn show_branch(repo: &Repository) -> Result<(), Error> {
+fn branch<'a>(repo: &'a Repository) -> Result<String, Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
-        Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
-                      e.code() == ErrorCode::NotFound => None,
-        Err(e) => return Err(e),
+            Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
+                          e.code() == ErrorCode::NotFound
+                       => None,
+            Err(e) => return Err(e),
     };
-    let head = head.as_ref().and_then(|h| h.shorthand());
+    let branchref = head.as_ref().and_then(|h| h.shorthand());
+    let branchname = branchref.unwrap_or("HEAD (no branch)").to_string();
 
-    println!("## {}", head.unwrap_or("HEAD (no branch)"));
-
-    Ok(())
+    Ok(branchname)
 }
 
 // This version of the output prefixes each path with two status columns and
@@ -139,10 +137,9 @@ fn print_short(repo: &Repository, statuses: git2::Statuses) {
 
 fn main() {
     const USAGE: &'static str = "
-usage: absorb [options] [--] [<spec>..]
+usage: absorb [options] [--] [<branchname>]
 
 Options:
-    -b, --branch                show branch information
     -h, --help                  show this message
 ";
 
