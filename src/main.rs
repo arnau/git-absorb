@@ -61,7 +61,7 @@ fn run(args: &Args) -> Result<(), Error> {
 
     checkout("master");
     pull("origin", "master");
-    checkout(current_branch);
+    checkout(&current_branch);
     // rebase("master");
 
     return Ok(())
