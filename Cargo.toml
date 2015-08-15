@@ -7,3 +7,4 @@ authors = ["Arnau Siches <asiches@gmail.com>"]
 docopt = "0.6.*"
 rustc-serialize = "0.3"
 git2 = "0.3.*"
+time = "0.1.*"
