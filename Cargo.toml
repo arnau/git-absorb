@@ -1,0 +1,9 @@
+[package]
+name = "absorb"
+version = "0.1.0"
+authors = ["Arnau Siches <asiches@gmail.com>"]
+
+[dependencies]
+docopt = "0.6.*"
+rustc-serialize = "0.3"
+git2 = "0.3.*"
