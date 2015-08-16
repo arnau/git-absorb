@@ -6,6 +6,7 @@ RUN  apt-get update -qq \
       cmake \
       curl \
       file \
+      git \
       libgit2-dev \
       libssl-dev
 
