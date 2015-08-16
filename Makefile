@@ -1,30 +1,48 @@
 version := 0.1.0
 name := git-absorb
-TARGET_TUPLE := $(shell uname -m -s|tr '[:upper:] ' '[:lower:]-')
+
+# darwin-x86_64: x86_64-apple-darwin
+# linux-x86_64: x86_64-unknown-linux-gnu
+hardware_name := $(shell uname -m | tr '[:upper:]' '[:lower:]')
+os_name := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+TARGET_TUPLE := $(hardware_name)-$(os_name)
+src_bin := target/release/$(name)
+tarball = $(name)-$(version)-$(TARGET_TUPLE).tar.gz
 
 tuple:
-	@echo $(target-tuple)
+	@echo "$(TARGET_TUPLE)"
 
-# i686-unknown-linux-gnu
-release-linux:
-	cargo build --release
-	cp target/release/absorb git-absorb.linux-i386
-	rm -rf target/release
+release: $(tarball)
 
-# x86_64-apple-darwin
-release-macos:
-	cargo build --release
-	cp target/release/absorb git-absorb.macos-x86_64
-	rm -rf target/release
-
-
-release: $(name)-$(version)-$(TARGET_TUPLE).zip
-clean: $(name)-$(version)-$(TARGET_TUPLE).zip
+clean: $(tarball) $(name)
 	@rm $^
 
-$(name)-$(version)-$(TARGET_TUPLE).zip: build/$(name).$(TARGET_TUPLE) LICENSE
-	@cp build/$(name).$(TARGET_TUPLE) $(name)
-	@zip -D $@ $(name) LICENSE
+$(tarball): $(name) LICENSE
+	@echo "Compressing"
+	@tar -zcvf $@ $^
 	@shasum -a 256 $@
 	@du -sh $@
-	@rm $(name)
+
+$(name): $(src_bin)
+	cp $(src_bin) $(name)
+
+$(src_bin):
+	cargo build --release
+
+uncompress:
+	mkdir -p temp
+	tar -zxvf $(tarball) -C temp/
+
+# TODO: Review linux flow
+shell:
+	docker run --rm -it \
+		-v $(PWD):/source \
+		-w /source \
+		arnau/rust
+
+$(name).linux-x86_64:
+	docker run --rm -it \
+		-v $(PWD):/source \
+		-w /source \
+		arnau/rust \
+		cargo build --release
