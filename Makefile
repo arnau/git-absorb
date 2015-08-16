@@ -19,8 +19,12 @@ release-macos:
 
 
 release: $(name)-$(version)-$(TARGET_TUPLE).zip
+clean: $(name)-$(version)-$(TARGET_TUPLE).zip
+	@rm $^
 
 $(name)-$(version)-$(TARGET_TUPLE).zip: build/$(name).$(TARGET_TUPLE) LICENSE
-	@zip $@ build/$(name).$(TARGET_TUPLE) LICENSE > /dev/null
-	@shasum -a 256 $(name)-$(version)-$(TARGET_TUPLE).zip
+	@cp build/$(name).$(TARGET_TUPLE) $(name)
+	@zip -D $@ $(name) LICENSE
+	@shasum -a 256 $@
 	@du -sh $@
+	@rm $(name)
