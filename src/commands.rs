@@ -14,10 +14,10 @@ use self::git2::{Repository, Error, ErrorCode};
 pub fn branch<'a>(repo: &'a Repository) -> Result<String, Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
-            Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
-                          e.code() == ErrorCode::NotFound
-                       => None,
-            Err(e) => return Err(e),
+        Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
+                      e.code() == ErrorCode::NotFound
+                   => None,
+        Err(e) => return Err(e),
     };
     let branchref = head.as_ref().and_then(|h| h.shorthand());
     let branchname = branchref.unwrap_or("HEAD (no branch)").to_string();
