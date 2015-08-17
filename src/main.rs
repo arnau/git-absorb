@@ -1,12 +1,15 @@
-extern crate absorb;
-use absorb::commands::*;
-
 extern crate git2;
 extern crate docopt;
 extern crate rustc_serialize;
 
+#[macro_use]
+extern crate log;
+
 use docopt::Docopt;
 use git2::{Repository, Error, StatusOptions};
+
+mod commands;
+use commands::*;
 
 
 #[derive(RustcDecodable)]

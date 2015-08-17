@@ -9,9 +9,19 @@ repository = "https://github.com/arnau/git-absorb"
 
 [lib]
 name = "absorb"
+path = "src/lib.rs"
 
 [dependencies]
 docopt = "0.6.*"
 rustc-serialize = "0.3"
 git2 = "0.3.*"
 time = "0.1.*"
+log = "0.3"
+
+[[bin]]
+name = "git-absorb"
+test = false
+doc = false
+
+[[test]]
+name = "tests"

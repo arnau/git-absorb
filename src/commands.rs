@@ -1,13 +1,12 @@
-extern crate git2;
-
 use std::process::{Command, exit};
-use self::git2::{Repository, Error, ErrorCode};
+use git2::{Repository, Error, ErrorCode};
 
-/// Gets the current branch.
+
+/// Gets the current branch from the given Git repository.
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// let repo = try!(Repository::open("."));
 /// let branchname = try!(branch(&repo));
 /// ```
@@ -24,6 +23,7 @@ pub fn branch<'a>(repo: &'a Repository) -> Result<String, Error> {
 
     Ok(branchname)
 }
+
 
 pub fn checkout(target_branch: &str) {
     let output = Command::new("git")
