@@ -16,8 +16,7 @@ fn git_revparse() -> String {
 
 #[test]
 fn test_branch() {
-    let path = ".";
-    let repo = Repository::open(&path).unwrap();
+    let repo = Repository::open(".").unwrap();
     let branchname = branch(&repo).unwrap();
     let contrast = git_revparse();
 
