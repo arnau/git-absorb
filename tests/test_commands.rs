@@ -11,7 +11,7 @@ fn git_revparse() -> String {
                        .unwrap_or_else(|e| {
                           panic!("failed to execute process: {}", e) });
 
-  String::from_utf8_lossy(&output.stdout).to_string()
+  String::from_utf8_lossy(&output.stdout).trim_right().to_string()
 }
 
 #[test]
@@ -21,5 +21,5 @@ fn test_branch() {
     let branchname = branch(&repo).unwrap();
     let contrast = git_revparse();
 
-    assert_eq!(contrast.trim_right(), branchname);
+    assert_eq!(contrast, branchname);
 }
