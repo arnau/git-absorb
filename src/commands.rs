@@ -10,7 +10,7 @@ use git2::{Repository, Error, ErrorCode};
 /// let repo = try!(Repository::open("."));
 /// let branchname = try!(branch(&repo));
 /// ```
-pub fn branch<'a>(repo: &'a Repository) -> Result<String, Error> {
+pub fn branch(repo: &Repository) -> Result<String, Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
         Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
