@@ -24,4 +24,4 @@ test = false
 doc = false
 
 [[test]]
-name = "tests"
+name = "lib"
