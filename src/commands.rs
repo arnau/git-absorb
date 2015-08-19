@@ -6,9 +6,15 @@ use git2::{Repository, Error, ErrorCode};
 ///
 /// # Examples
 ///
-/// ```ignore
-/// let repo = try!(Repository::open("."));
-/// let branchname = try!(branch(&repo));
+/// ```
+/// # extern crate git2;
+/// # extern crate absorb;
+/// # fn main() {
+/// use git2::Repository;
+/// use absorb::commands::branch;
+/// let repo = Repository::open(".").unwrap();
+/// let branchname = branch(&repo).unwrap();
+/// # }
 /// ```
 pub fn branch(repo: &Repository) -> Result<String, Error> {
     let head = match repo.head() {
