@@ -36,6 +36,7 @@ uncompress:
 # TODO: Review linux flow
 shell:
 	docker run --rm -it \
+		--volumes-from vault \
 		-v $(PWD):/source \
 		-w /source \
 		arnau/rust
