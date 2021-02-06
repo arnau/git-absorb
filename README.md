@@ -5,11 +5,7 @@ current branch.
 
 ## Install
 
-Download the [release](https://github.com/arnau/git-absorb/releases) or
-install via Homebrew:
-
-    $ brew tap arnau/git-absorb
-    $ brew install git-absorb
+Download the [release](https://github.com/arnau/git-absorb/releases).
 
 And create a git alias:
 
