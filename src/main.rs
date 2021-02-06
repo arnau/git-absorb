@@ -1,61 +1,93 @@
-extern crate git2;
-extern crate docopt;
-extern crate rustc_serialize;
-
-#[macro_use]
-extern crate log;
-
-use docopt::Docopt;
-use git2::{Repository, Error, StatusOptions};
+use clap::{AppSettings, Clap};
+use git2::{BranchType, Error as GitError, Repository, RepositoryState, StatusOptions};
+use std::error::Error;
 
 mod commands;
 use commands::*;
 
+fn resolve_base_branch(repo: &Repository) -> Result<String, Box<dyn Error>> {
+    let default_branches = vec!["main", "master", "dev"];
 
-#[derive(RustcDecodable)]
-struct Args {
-    arg_spec: Vec<String>,
-    flag_git_dir: Option<String>,
+    for branch in default_branches {
+        if let Ok(branch) = repo.find_branch(branch, BranchType::Local) {
+            return Ok(branch.name()?.expect("a valid UTF-8 branch name").into());
+        }
+    }
+
+    if let Some(branch) = repo.config()?.get_entry("init.defaultbranch")?.value() {
+        Ok(branch.into())
+    } else {
+        Err(
+            Box::new(
+            GitError::from_str("Couldn't guess the base branch. Please provide the base branch using the `base_branch` flag.".into())
+            )
+        )
+    }
 }
 
-fn run(args: &Args) -> Result<(), Error> {
-    let path = args.flag_git_dir.clone().unwrap_or(".".to_string());
-    let repo = try!(Repository::open(&path));
+#[derive(Debug, Clap)]
+#[clap(name = "git-absorb", version, global_setting(AppSettings::ColoredHelp))]
+struct Cli {
+    /// Name of the base branch.
+    #[clap(long = "base_branch", short = 'b')]
+    base_branch: Option<String>,
+    /// Name of the remote to fetch from
+    #[clap(long = "remote", short = 'r', default_value = "origin")]
+    remote: String,
+}
 
-    if repo.is_bare() {
-        return Err(Error::from_str("Bare repositories are not allowed"))
+impl Cli {
+    pub fn run(&self) -> Result<String, Box<dyn Error>> {
+        let path = "."; // TODO: Add flag to change this.
+        let repo = Repository::open(path)?;
+        let base_branch = if let Some(branch) = &self.base_branch {
+            branch.into()
+        } else {
+            resolve_base_branch(&repo)?
+        };
+
+        if repo.is_bare() {
+            return Err(Box::new(GitError::from_str(
+                "Bare repositories are not allowed",
+            )));
+        }
+
+        let current_branch = branch(&repo)?;
+
+        let mut opts = StatusOptions::new();
+        let statuses = repo.statuses(Some(&mut opts))?;
+
+        if !statuses.is_empty() {
+            return Err(Box::new(GitError::from_str(
+                "The working directory is not in a clean state.",
+            )));
+        }
+
+        checkout(&base_branch);
+        pull(&self.remote, "master");
+
+        if &current_branch != &base_branch {
+            checkout(&current_branch);
+            rebase(&base_branch);
+        }
+
+        return Ok(format!(
+            "Absorbed {} into {}",
+            &base_branch, &current_branch
+        ));
     }
-
-    let mut opts = StatusOptions::new();
-
-    for spec in args.arg_spec.iter() {
-        opts.pathspec(spec);
-    }
-
-    let current_branch = try!(branch(&repo));
-
-    println!("Current branch {:?}", current_branch);
-
-    checkout("master");
-    pull("origin", "master");
-    checkout(&current_branch);
-    rebase("master");
-
-    return Ok(())
 }
 
 fn main() {
-    const USAGE: &'static str = "
-usage: absorb [options] [--] [<branchname>]
+    let cli: Cli = Cli::parse();
 
-Options:
-    -h, --help                  show this message
-";
+    match cli.run() {
+        Ok(msg) => {
+            println!("{}", msg);
+        }
 
-    let args = Docopt::new(USAGE).and_then(|d| d.decode())
-                                 .unwrap_or_else(|e| e.exit());
-    match run(&args) {
-        Ok(()) => {}
-        Err(e) => println!("error: {}", e),
+        Err(err) => {
+            eprintln!("{}", err);
+        }
     }
 }

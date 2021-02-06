@@ -1,8 +1,4 @@
-extern crate git2;
-
-#[macro_use]
-extern crate log;
-
 extern crate absorb;
+extern crate git2;
 
 mod test_commands;
