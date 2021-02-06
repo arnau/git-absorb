@@ -32,18 +32,3 @@ $(src_bin):
 uncompress:
 	mkdir -p temp
 	tar -zxvf $(tarball) -C temp/
-
-# TODO: Review linux flow
-shell:
-	docker run --rm -it \
-		--volumes-from vault \
-		-v $(PWD):/source \
-		-w /source \
-		arnau/rust
-
-$(name).linux-x86_64:
-	docker run --rm -it \
-		-v $(PWD):/source \
-		-w /source \
-		arnau/rust \
-		cargo build --release
