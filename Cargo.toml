@@ -1,5 +1,5 @@
 [package]
-name = "git-absorb"
+name = "absorb"
 version = "0.2.1"
 authors = ["Arnau Siches <asiches@gmail.com>"]
 description = "Git command to absorb and rebase changes into your branch"
@@ -8,16 +8,11 @@ license = "MIT"
 repository = "https://github.com/arnau/git-absorb"
 edition = "2018"
 
-[lib]
-name = "absorb"
-path = "src/lib.rs"
+[[bin]]
+name = "git-absorb"
+path = "src/main.rs"
 
 [dependencies]
 git2 = "0.13"
 time = "0.2"
 clap = "3.0.0-beta.2"
-
-[[bin]]
-name = "git-absorb"
-test = false
-doc = false

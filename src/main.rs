@@ -1,49 +1,33 @@
 use clap::{AppSettings, Clap};
-use git2::{BranchType, Error as GitError, Repository, RepositoryState, StatusOptions};
+use git2::{Error as GitError, Repository, StatusOptions};
+use std::env;
 use std::error::Error;
 
-mod commands;
-use commands::*;
-
-fn resolve_base_branch(repo: &Repository) -> Result<String, Box<dyn Error>> {
-    let default_branches = vec!["main", "master", "dev"];
-
-    for branch in default_branches {
-        if let Ok(branch) = repo.find_branch(branch, BranchType::Local) {
-            return Ok(branch.name()?.expect("a valid UTF-8 branch name").into());
-        }
-    }
-
-    if let Some(branch) = repo.config()?.get_entry("init.defaultbranch")?.value() {
-        Ok(branch.into())
-    } else {
-        Err(
-            Box::new(
-            GitError::from_str("Couldn't guess the base branch. Please provide the base branch using the `base_branch` flag.".into())
-            )
-        )
-    }
-}
+use absorb::commands::*;
+use absorb::rebase;
 
 #[derive(Debug, Clap)]
 #[clap(name = "git-absorb", version, global_setting(AppSettings::ColoredHelp))]
 struct Cli {
-    /// Name of the base branch.
-    #[clap(long = "base_branch", short = 'b')]
-    base_branch: Option<String>,
+    /// Name of the branch to absorb from.
+    #[clap(value_name = "branch", default_value = "main")]
+    base_branch: String,
     /// Name of the remote to fetch from
     #[clap(long = "remote", short = 'r', default_value = "origin")]
     remote: String,
+    /// Path to the SSH private key. Defaults to ~/.ssh/id_rsa.
+    #[clap(long = "private_key", short = 'k')]
+    private_key: Option<String>,
 }
 
 impl Cli {
     pub fn run(&self) -> Result<String, Box<dyn Error>> {
         let path = "."; // TODO: Add flag to change this.
         let repo = Repository::open(path)?;
-        let base_branch = if let Some(branch) = &self.base_branch {
-            branch.into()
-        } else {
-            resolve_base_branch(&repo)?
+        let mut remote = repo.find_remote(&self.remote)?;
+        let private_key = match &self.private_key {
+            Some(pk) => pk.clone(),
+            None => format!("{}/.ssh/id_rsa", env::var("HOME")?),
         };
 
         if repo.is_bare() {
@@ -63,17 +47,27 @@ impl Cli {
             )));
         }
 
-        checkout(&base_branch);
-        pull(&self.remote, &base_branch);
+        let head = repo.head()?;
+        let head_commit = repo.reference_to_annotated_commit(&head)?;
 
-        if &current_branch != &base_branch {
-            checkout(&current_branch);
-            rebase(&base_branch);
+        // checkout(&self.base_branch);
+        let upstream = fetch(&repo, &mut remote, &self.base_branch, &private_key)?;
+        let refname = format!("refs/heads/{}", &self.base_branch);
+        let base_ref = repo.find_reference(&refname)?;
+        let base_commit = repo.reference_to_annotated_commit(&base_ref)?;
+
+        rebase::run(&repo, &base_commit, &upstream)?;
+
+        if &current_branch != &self.base_branch {
+            // checkout(&current_branch);
+            // rebase(&base_branch);
+
+            rebase::run(&repo, &head_commit, &upstream)?;
         }
 
         return Ok(format!(
-            "Absorbed {} into {}",
-            &base_branch, &current_branch
+            "Absorbed {}/{} into {}",
+            &self.remote, &self.base_branch, &current_branch
         ));
     }
 }

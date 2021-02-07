@@ -1,6 +1,8 @@
-use std::process::{Command, exit};
-use git2::{Repository, Error, ErrorCode};
+use git2::{AnnotatedCommit, Error, ErrorCode, Remote, Repository};
+use std::env;
+use std::process::{exit, Command};
 
+use crate::fetch;
 
 /// Gets the current branch from the given Git repository.
 ///
@@ -19,9 +21,9 @@ use git2::{Repository, Error, ErrorCode};
 pub fn branch(repo: &Repository) -> Result<String, Error> {
     let head = match repo.head() {
         Ok(head) => Some(head),
-        Err(ref e) if e.code() == ErrorCode::UnbornBranch ||
-                      e.code() == ErrorCode::NotFound
-                   => None,
+        Err(ref e) if e.code() == ErrorCode::UnbornBranch || e.code() == ErrorCode::NotFound => {
+            None
+        }
         Err(e) => return Err(e),
     };
     let branchref = head.as_ref().and_then(|h| h.shorthand());
@@ -30,14 +32,12 @@ pub fn branch(repo: &Repository) -> Result<String, Error> {
     Ok(branchname)
 }
 
-
 pub fn checkout(target_branch: &str) {
     let output = Command::new("git")
-                         .arg("checkout")
-                         .arg(target_branch)
-                         .output()
-                         .unwrap_or_else(|e| {
-                            panic!("failed to execute process: {}", e) });
+        .arg("checkout")
+        .arg(target_branch)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to execute process: {}", e));
     let status_code = output.status.code();
 
     println!("Checking out {} ...", target_branch);
@@ -45,8 +45,8 @@ pub fn checkout(target_branch: &str) {
     match status_code {
         Some(0) => println!("{}", String::from_utf8_lossy(&output.stdout)),
         Some(_) => {
-             println!("{}", String::from_utf8_lossy(&output.stderr));
-             exit(status_code.unwrap());
+            println!("{}", String::from_utf8_lossy(&output.stderr));
+            exit(status_code.unwrap());
         }
         None => println!("Something wrong happened"),
     }
@@ -54,14 +54,13 @@ pub fn checkout(target_branch: &str) {
 
 pub fn pull(target_remote: &str, target_branch: &str) {
     let output = Command::new("git")
-                         .arg("pull")
-                         .arg("--quiet")
-                         .arg("--rebase=preserve")
-                         .arg(target_remote)
-                         .arg(target_branch)
-                         .output()
-                         .unwrap_or_else(|e| {
-                            panic!("failed to execute process: {}", e) });
+        .arg("pull")
+        .arg("--quiet")
+        .arg("--rebase=preserve")
+        .arg(target_remote)
+        .arg(target_branch)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to execute process: {}", e));
     let status_code = output.status.code();
 
     println!("Pulling {} {} ...", target_remote, target_branch);
@@ -69,20 +68,32 @@ pub fn pull(target_remote: &str, target_branch: &str) {
     match status_code {
         Some(0) => println!("{}", String::from_utf8_lossy(&output.stdout)),
         Some(_) => {
-             println!("{}", String::from_utf8_lossy(&output.stderr));
-             exit(status_code.unwrap());
+            println!("{}", String::from_utf8_lossy(&output.stderr));
+            exit(status_code.unwrap());
         }
         None => println!("Something wrong happened"),
     }
 }
 
+pub fn fetch<'a>(
+    repo: &'a Repository,
+    remote: &'a mut Remote,
+    remote_branch: &str,
+    private_key: &str,
+) -> Result<AnnotatedCommit<'a>, git2::Error> {
+    let passphrase = env::var("ABSORB_PASSPHRASE").ok();
+
+    let commit = fetch::run(&repo, remote, remote_branch, private_key, passphrase)?;
+
+    Ok(commit)
+}
+
 pub fn rebase(target_branch: &str) {
     let output = Command::new("git")
-                         .arg("rebase")
-                         .arg(target_branch)
-                         .output()
-                         .unwrap_or_else(|e| {
-                            panic!("failed to execute process: {}", e) });
+        .arg("rebase")
+        .arg(target_branch)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to execute process: {}", e));
     let status_code = output.status.code();
 
     println!("Rebasing {} ...", target_branch);
@@ -90,8 +101,8 @@ pub fn rebase(target_branch: &str) {
     match status_code {
         Some(0) => println!("{}", String::from_utf8_lossy(&output.stdout)),
         Some(_) => {
-             println!("{}", String::from_utf8_lossy(&output.stderr));
-             exit(status_code.unwrap());
+            println!("{}", String::from_utf8_lossy(&output.stderr));
+            exit(status_code.unwrap());
         }
         None => println!("Something wrong happened"),
     }
