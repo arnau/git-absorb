@@ -4,7 +4,7 @@ use std::env;
 use std::error::Error;
 
 use absorb::commands::*;
-use absorb::rebase;
+use absorb::{fetch, rebase};
 
 #[derive(Debug, Clap)]
 #[clap(name = "git-absorb", version, global_setting(AppSettings::ColoredHelp))]
@@ -29,6 +29,7 @@ impl Cli {
             Some(pk) => pk.clone(),
             None => format!("{}/.ssh/id_rsa", env::var("HOME")?),
         };
+        let passphrase = env::var("ABSORB_PASSPHRASE").ok();
 
         if repo.is_bare() {
             return Err(Box::new(GitError::from_str(
@@ -49,20 +50,24 @@ impl Cli {
 
         let head = repo.head()?;
         let head_commit = repo.reference_to_annotated_commit(&head)?;
-
-        // checkout(&self.base_branch);
-        let upstream = fetch(&repo, &mut remote, &self.base_branch, &private_key)?;
+        let fetch_commit = fetch::run(
+            &repo,
+            &mut remote,
+            &self.base_branch,
+            &private_key,
+            passphrase,
+        )?;
         let refname = format!("refs/heads/{}", &self.base_branch);
         let base_ref = repo.find_reference(&refname)?;
         let base_commit = repo.reference_to_annotated_commit(&base_ref)?;
 
-        rebase::run(&repo, &base_commit, &upstream)?;
+        rebase::run(&repo, &base_commit, &fetch_commit)?;
 
         if &current_branch != &self.base_branch {
-            // checkout(&current_branch);
-            // rebase(&base_branch);
+            let base_ref = repo.find_reference(&refname)?;
+            let base_commit = repo.reference_to_annotated_commit(&base_ref)?;
 
-            rebase::run(&repo, &head_commit, &upstream)?;
+            rebase::run(&repo, &head_commit, &base_commit)?;
         }
 
         return Ok(format!(
