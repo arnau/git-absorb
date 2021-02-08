@@ -64,7 +64,7 @@ impl Cli {
         }
 
         checkout(&base_branch);
-        pull(&self.remote, "master");
+        pull(&self.remote, &base_branch);
 
         if &current_branch != &base_branch {
             checkout(&current_branch);
