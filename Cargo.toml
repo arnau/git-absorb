@@ -1,6 +1,6 @@
 [package]
 name = "git-absorb"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Arnau Siches <asiches@gmail.com>"]
 description = "Git command to absorb and rebase changes into your branch"
 keywords = ["git", "rebase", "absorb", "util"]
