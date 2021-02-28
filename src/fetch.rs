@@ -66,3 +66,35 @@ pub fn run<'a>(
     let fetch_head = repo.find_reference("FETCH_HEAD")?;
     Ok(repo.reference_to_annotated_commit(&fetch_head)?)
 }
+
+/// Fetches the given (local) remote reference. E.g. a remote in the same filesystem.
+pub fn local<'a>(
+    repo: &'a Repository,
+    remote_name: &'a str,
+    reference: &str,
+) -> Result<AnnotatedCommit<'a>, GitError> {
+    let mut remote = repo.find_remote(remote_name)?;
+    let mut callbacks = RemoteCallbacks::new();
+
+    callbacks.transfer_progress(progress_printer);
+
+    let mut options = FetchOptions::new();
+    options
+        .remote_callbacks(callbacks)
+        .download_tags(AutotagOption::All);
+
+    println!("Fetching {}/{}", remote_name, reference);
+
+    remote.fetch(&[reference], Some(&mut options), None)?;
+
+    let stats = remote.stats();
+    println!(
+        "Received {}/{} objects in {} bytes",
+        stats.indexed_objects(),
+        stats.total_objects(),
+        stats.received_bytes()
+    );
+
+    let fetch_head = repo.find_reference("FETCH_HEAD")?;
+    Ok(repo.reference_to_annotated_commit(&fetch_head)?)
+}
